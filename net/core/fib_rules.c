@@ -36,8 +36,6 @@ int fib_default_rule_add(struct fib_rules_ops *ops,
 	r->pref = pref;
 	r->table = table;
 	r->flags = flags;
-	r->uid_start = INVALID_UID;
-	r->uid_end = INVALID_UID;
 	r->fr_net = hold_net(ops->fro_net);
 
 	/* The lock is not required here, the list in unreacheable
@@ -389,20 +387,7 @@ static int fib_nl_newrule(struct sk_buff *skb, struct nlmsghdr* nlh)
 			unresolved = 1;
 	} else if (rule->action == FR_ACT_GOTO)
 		goto errout_free;
-
-	/* UID start and end must either both be valid or both unspecified. */
-	rule->uid_start = rule->uid_end = INVALID_UID;
-	if (tb[FRA_UID_START] || tb[FRA_UID_END]) {
-		if (tb[FRA_UID_START] && tb[FRA_UID_END]) {
-			rule->uid_start = fib_nl_uid(tb[FRA_UID_START]);
-			rule->uid_end = fib_nl_uid(tb[FRA_UID_END]);
-		}
-		if (!uid_valid(rule->uid_start) ||
-		    !uid_valid(rule->uid_end) ||
-		    !uid_lte(rule->uid_start, rule->uid_end))
-		goto errout_free;
-	}
-
+	
 	err = ops->configure(rule, skb, frh, tb);
 	if (err < 0)
 		goto errout_free;
